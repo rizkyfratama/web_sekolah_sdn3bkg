@@ -1,8 +1,46 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 
-// === KONFIGURASI API KEY ===
-// Menggunakan process.env.API_KEY sesuai panduan @google/genai
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Fungsi EKSTRA AMAN untuk mengambil API Key dari berbagai kemungkinan environment
+const getApiKey = (): string => {
+  let key = '';
+
+  // 1. Coba ambil dari process.env (Standar Node/CRA/Next.js)
+  try {
+    if (process.env.API_KEY) key = process.env.API_KEY;
+    if (!key && process.env.VITE_API_KEY) key = process.env.VITE_API_KEY;
+    if (!key && process.env.REACT_APP_API_KEY) key = process.env.REACT_APP_API_KEY;
+  } catch (e) {
+    // Ignore ReferenceError if process is not defined
+  }
+
+  // 2. Coba ambil dari import.meta.env (Standar Vite Modern)
+  if (!key) {
+    try {
+      // @ts-ignore
+      if (import.meta.env?.VITE_API_KEY) key = import.meta.env.VITE_API_KEY;
+      // @ts-ignore
+      if (!key && import.meta.env?.API_KEY) key = import.meta.env.API_KEY;
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  return key;
+};
+
+const apiKey = getApiKey();
+let ai: GoogleGenAI | null = null;
+
+// Inisialisasi Google AI Client
+if (apiKey) {
+  try {
+    ai = new GoogleGenAI({ apiKey });
+  } catch (error) {
+    console.error("Gagal menginisialisasi Google AI:", error);
+  }
+} else {
+    console.warn("⚠️ Gemini Service: API Key kosong. Pastikan Environment Variable diset sebagai 'VITE_API_KEY' atau 'API_KEY' di Vercel.");
+}
 
 const BASE_SYSTEM_INSTRUCTION = `
 PERAN DAN PERSONA:
@@ -38,6 +76,10 @@ CONTOH INTERAKSI:
 let chatSession: Chat | null = null;
 
 export const getChatSession = (): Chat => {
+  if (!ai) {
+      throw new Error("AI Client belum siap (API Key hilang).");
+  }
+  
   if (!chatSession) {
     chatSession = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -51,6 +93,18 @@ export const getChatSession = (): Chat => {
 };
 
 export const sendMessageToGemini = async (message: string, contextData: string = ''): Promise<string> => {
+  // Diagnosa Error yang Lebih Spesifik untuk User
+  if (!apiKey || !ai) {
+    console.error("API Key Missing. Checked: process.env.API_KEY, process.env.VITE_API_KEY, import.meta.env.VITE_API_KEY");
+    return `⚠️ SISTEM ERROR: API Key tidak terdeteksi.
+    
+SOLUSI UNTUK ADMIN:
+Di Vercel (Settings > Environment Variables), harap ganti nama variable "API_KEY" menjadi "VITE_API_KEY".
+Vercel seringkali tidak mengirim variable tanpa awalan "VITE_" ke browser demi keamanan.
+    
+Setelah diganti, lakukan Redeploy. Terima kasih. 🙏`;
+  }
+
   try {
     const chat = getChatSession();
     
