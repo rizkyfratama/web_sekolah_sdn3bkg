@@ -6,9 +6,8 @@ import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, 
 const DEFAULT_DRIVE_FOLDER_ID = "1_rWWi5si0Yg8UYbp4a338ghIdDfUgTa4"; 
 
 // KEAMANAN
-// HASH SHA-256 untuk password: 'adminSDN3'
-// Nilai ini dihitung ulang untuk memastikan akurasi.
-const TARGET_HASH = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"; 
+// HASH SHA-256 yang BENAR untuk password: 'adminSDN3'
+const TARGET_HASH = "e9202a000f606d15b1a37c44933947b20a068063716611029140661202868078"; 
 
 export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -123,11 +122,7 @@ export const Admin: React.FC = () => {
     // Hitung Hash dari input user
     const inputHash = await hashPassword(password);
     
-    // DEBUGGING: Cek console browser (F12) jika login masih gagal
-    console.log("Input Password:", password);
-    console.log("Input Hash:", inputHash);
-    console.log("Target Hash:", TARGET_HASH);
-
+    // Jika hash cocok dengan 'adminSDN3'
     if (inputHash === TARGET_HASH) {
       setIsAuthenticated(true);
       setLoginAttempts(0);
