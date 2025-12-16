@@ -267,7 +267,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 <div className="bg-slate-800 p-2 rounded-lg group-hover:bg-violet-600 transition duration-300">
                     <Mail size={18} className="text-violet-400 group-hover:text-white" />
                 </div>
-                <span className="text-slate-400 group-hover:text-slate-200 transition">info@sdn3bangkuang.sch.id</span>
+                <span className="text-slate-400 group-hover:text-slate-200 transition break-all">sdn3karaukuala25@gmail.com</span>
               </li>
             </ul>
           </div>

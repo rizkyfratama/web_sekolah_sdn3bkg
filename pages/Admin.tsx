@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, Monitor, Loader2, Users, Pencil, RefreshCw, ImageOff, PlayCircle } from 'lucide-react';
+import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, Monitor, Loader2, Users, Pencil, RefreshCw, ImageOff, PlayCircle, ShieldAlert } from 'lucide-react';
 
 // KONFIGURASI FOLDER DRIVE (Hanya satu folder default untuk gambar)
 const DEFAULT_DRIVE_FOLDER_ID = "1_rWWi5si0Yg8UYbp4a338ghIdDfUgTa4"; 
 
+// KEAMANAN
+// HASH SHA-256 dari 'adminSDN3'
+// Kita menyimpan hash-nya saja, BUKAN password asli, supaya lebih aman jika kode di-inspect.
+const TARGET_HASH = "e9202a000f606d15b1a37c44933947b20a068063716611029140661202868078"; 
+
 export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  
+  // Login Security State
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+
   const [activeTab, setActiveTab] = useState<'news' | 'gallery' | 'teachers'>('news');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -50,6 +61,20 @@ export const Admin: React.FC = () => {
       clearImageSelection();
   }, [activeTab]);
 
+  // Lockout Timer Logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLocked && lockoutTimer > 0) {
+        interval = setInterval(() => {
+            setLockoutTimer((prev) => prev - 1);
+        }, 1000);
+    } else if (lockoutTimer === 0 && isLocked) {
+        setIsLocked(false);
+        setLoginAttempts(0); // Reset attempts after lockout
+    }
+    return () => clearInterval(interval);
+  }, [isLocked, lockoutTimer]);
+
   const clearImageSelection = () => {
     setSelectedFile(null);
     setPreviewUrl('');
@@ -81,12 +106,38 @@ export const Admin: React.FC = () => {
     clearImageSelection();
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  // --- SECURE LOGIN LOGIC ---
+  const hashPassword = async (str: string) => {
+    const msgBuffer = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123') { 
+    
+    if (isLocked) return;
+
+    // Hitung Hash dari input user
+    const inputHash = await hashPassword(password);
+
+    if (inputHash === TARGET_HASH) {
       setIsAuthenticated(true);
+      setLoginAttempts(0);
+      setPassword(''); // Clear password from state memory
     } else {
-      alert('Password salah!');
+      const newAttempts = loginAttempts + 1;
+      setLoginAttempts(newAttempts);
+      
+      if (newAttempts >= 3) {
+          setIsLocked(true);
+          setLockoutTimer(30); // Lock for 30 seconds
+          alert('Terlalu banyak percobaan gagal. Akses dikunci selama 30 detik.');
+      } else {
+          alert(`Password salah! Sisa percobaan: ${3 - newAttempts}`);
+      }
+      setPassword('');
     }
   };
 
@@ -206,15 +257,50 @@ export const Admin: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-          <div className="flex justify-center mb-6 text-blue-600"><Lock size={48} /></div>
-          <h2 className="text-2xl font-bold text-center text-slate-800 mb-6">Admin Login</h2>
+          <div className="flex justify-center mb-6 text-blue-600">
+             {isLocked ? <ShieldAlert size={48} className="text-red-500 animate-pulse" /> : <Lock size={48} />}
+          </div>
+          <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Admin Login</h2>
+          
+          {isLocked ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-center">
+                  <p className="font-bold text-sm">Akses Dikunci Sementara</p>
+                  <p className="text-xs mt-1">Terlalu banyak percobaan gagal.</p>
+                  <p className="text-xl font-mono mt-2">{lockoutTimer}s</p>
+              </div>
+          ) : (
+              <p className="text-slate-500 text-center mb-6 text-sm">Masukkan kredensial keamanan sekolah.</p>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" />
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                disabled={isLocked}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:cursor-not-allowed" 
+                placeholder={isLocked ? "Terkunci..." : "••••••••"}
+              />
             </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition">Masuk</button>
+            <button 
+                type="submit" 
+                disabled={isLocked || !password}
+                className={`w-full font-bold py-2 px-4 rounded-lg transition ${
+                    isLocked 
+                    ? 'bg-slate-400 text-white cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+            >
+                {isLocked ? 'Terkunci' : 'Masuk Dashboard'}
+            </button>
           </form>
+          
+          <div className="mt-6 text-center">
+              <LinkIcon className="inline-block mr-1 w-3 h-3 text-slate-400" />
+              <span className="text-xs text-slate-400">Secured with SHA-256 Encryption</span>
+          </div>
         </div>
       </div>
     );

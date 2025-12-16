@@ -17,7 +17,7 @@ INFORMASI DASAR SEKOLAH (Fakta Tetap):
 - Kepala Sekolah: Ibu Ria Frenica, S.Pd. (NIP: 19851124 201101 2 004)
 - Visi: "Terwujudnya peserta didik yang beriman, cerdas, terampil, dan berkarakter Profil Pelajar Pancasila."
 - Jam Belajar: Senin-Kamis (07.00-12.30), Jumat (07.00-11.00), Sabtu (07.00-12.00).
-- Kontak Resmi: (0513) 555-1234 atau info@sdn3bangkuang.sch.id
+- Kontak Resmi: (0513) 555-1234 atau sdn3karaukuala25@gmail.com
 
 ATURAN PENULISAN & ESTETIKA (PENTING):
 1. **DILARANG MENGGUNAKAN MARKDOWN**: Jangan gunakan tanda bintang dua (**teks**), tanda pagar (#), atau simbol formatting kode lainnya. Tulis teks biasa yang bersih.
