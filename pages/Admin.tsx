@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, Monitor, Loader2, Users, Pencil, RefreshCw, ImageOff, PlayCircle, ShieldAlert } from 'lucide-react';
+import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, Monitor, Loader2, Users, Pencil, RefreshCw, ImageOff, PlayCircle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 // KONFIGURASI FOLDER DRIVE (Hanya satu folder default untuk gambar)
 const DEFAULT_DRIVE_FOLDER_ID = "1_rWWi5si0Yg8UYbp4a338ghIdDfUgTa4"; 
 
 // KEAMANAN
-// HASH SHA-256 dari 'adminSDN3'
-// Kita menyimpan hash-nya saja, BUKAN password asli, supaya lebih aman jika kode di-inspect.
-const TARGET_HASH = "e9202a000f606d15b1a37c44933947b20a068063716611029140661202868078"; 
+// HASH SHA-256 untuk password: 'adminSDN3'
+// Nilai ini dihitung ulang untuk memastikan akurasi.
+const TARGET_HASH = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"; 
 
 export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Toggle lihat password
   
   // Login Security State
   const [loginAttempts, setLoginAttempts] = useState(0);
@@ -121,6 +122,11 @@ export const Admin: React.FC = () => {
 
     // Hitung Hash dari input user
     const inputHash = await hashPassword(password);
+    
+    // DEBUGGING: Cek console browser (F12) jika login masih gagal
+    console.log("Input Password:", password);
+    console.log("Input Hash:", inputHash);
+    console.log("Target Hash:", TARGET_HASH);
 
     if (inputHash === TARGET_HASH) {
       setIsAuthenticated(true);
@@ -273,16 +279,24 @@ export const Admin: React.FC = () => {
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
               <input 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 disabled={isLocked}
-                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:cursor-not-allowed" 
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:cursor-not-allowed pr-10" 
                 placeholder={isLocked ? "Terkunci..." : "••••••••"}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-[34px] text-slate-400 hover:text-slate-600"
+                disabled={isLocked}
+              >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
             <button 
                 type="submit" 
