@@ -1,9 +1,32 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 
-const apiKey = process.env.API_KEY || '';
+// Fungsi aman mengambil API Key
+const getApiKey = () => {
+  try {
+    // PENTING: Langsung akses process.env.API_KEY
+    // Bundler (Vercel/Vite) akan mengganti teks ini dengan nilai kunci sebenarnya saat proses Build.
+    // Pengecekan 'typeof process' dihapus karena seringkali bernilai false di browser, menyebabkan kunci tidak terbaca.
+    return process.env.API_KEY || '';
+  } catch (e) {
+    // Fallback aman jika terjadi error akses variabel
+    return '';
+  }
+};
 
-// Initialize the client
-const ai = new GoogleGenAI({ apiKey });
+const apiKey = getApiKey();
+let ai: GoogleGenAI | null = null;
+
+// Debugging di Console Browser (Untuk memastikan status Key)
+if (!apiKey) {
+    console.warn("⚠️ Gemini Service: API Key tidak terdeteksi. Pastikan Variable 'API_KEY' ada di Vercel dan sudah dilakukan Redeploy.");
+} else {
+    // Inisialisasi hanya jika Key ada
+    try {
+        ai = new GoogleGenAI({ apiKey });
+    } catch (error) {
+        console.error("Gagal menginisialisasi Google AI:", error);
+    }
+}
 
 const BASE_SYSTEM_INSTRUCTION = `
 PERAN DAN PERSONA:
@@ -42,12 +65,16 @@ let chatSession: Chat | null = null;
 
 // Fungsi untuk membuat/mendapatkan sesi chat
 export const getChatSession = (): Chat => {
+  if (!ai) {
+      throw new Error("Sistem AI belum siap (API Key hilang).");
+  }
+  
   if (!chatSession) {
     chatSession = ai.chats.create({
       model: 'gemini-2.5-flash',
       config: {
         systemInstruction: BASE_SYSTEM_INSTRUCTION,
-        temperature: 0.3, // Rendah agar patuh pada aturan tanpa markdown
+        temperature: 0.3, 
       },
     });
   }
@@ -56,8 +83,9 @@ export const getChatSession = (): Chat => {
 
 // Fungsi Kirim Pesan dengan Konteks Data Terbaru
 export const sendMessageToGemini = async (message: string, contextData: string = ''): Promise<string> => {
-  if (!apiKey) {
-    return "Maaf, sistem AI sedang dalam pemeliharaan (API Key belum terkonfigurasi). Mohon hubungi administrator sekolah. 🙏";
+  // Cek Ketersediaan API Key di awal fungsi
+  if (!apiKey || !ai) {
+    return "⚠️ Maaf Bapak/Ibu, sistem asisten cerdas sedang dalam pemeliharaan (Menunggu konfigurasi server). Mohon hubungi Administrator Sekolah untuk melakukan Redeploy website. 🙏";
   }
 
   try {
@@ -77,6 +105,6 @@ Jawablah pertanyaan di atas dengan bahasa yang indah, sopan, dan TANPA tanda bin
     return response.text || "Mohon maaf, saya sedang kesulitan memproses permintaan Anda. Boleh diulangi? 😊";
   } catch (error) {
     console.error("Gemini Error:", error);
-    return "Mohon maaf Bapak/Ibu, sistem sedang sibuk saat ini. Silakan coba beberapa saat lagi. 🙏";
+    return "Mohon maaf Bapak/Ibu, sistem sedang sibuk atau mengalami gangguan koneksi. Silakan coba beberapa saat lagi. 🙏";
   }
 };
