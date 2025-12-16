@@ -1,32 +1,8 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 
-// Fungsi aman mengambil API Key
-const getApiKey = () => {
-  try {
-    // PENTING: Langsung akses process.env.API_KEY
-    // Bundler (Vercel/Vite) akan mengganti teks ini dengan nilai kunci sebenarnya saat proses Build.
-    // Pengecekan 'typeof process' dihapus karena seringkali bernilai false di browser, menyebabkan kunci tidak terbaca.
-    return process.env.API_KEY || '';
-  } catch (e) {
-    // Fallback aman jika terjadi error akses variabel
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
-let ai: GoogleGenAI | null = null;
-
-// Debugging di Console Browser (Untuk memastikan status Key)
-if (!apiKey) {
-    console.warn("⚠️ Gemini Service: API Key tidak terdeteksi. Pastikan Variable 'API_KEY' ada di Vercel dan sudah dilakukan Redeploy.");
-} else {
-    // Inisialisasi hanya jika Key ada
-    try {
-        ai = new GoogleGenAI({ apiKey });
-    } catch (error) {
-        console.error("Gagal menginisialisasi Google AI:", error);
-    }
-}
+// === KONFIGURASI API KEY ===
+// Menggunakan process.env.API_KEY sesuai panduan @google/genai
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const BASE_SYSTEM_INSTRUCTION = `
 PERAN DAN PERSONA:
@@ -47,28 +23,21 @@ ATURAN PENULISAN & ESTETIKA (PENTING):
 2. **JANGAN MENEBALKAN TEKS**: Tulis semua informasi dalam format teks normal yang mengalir.
 3. **Format Nomor Telepon**: Jika menyebutkan angka panjang (NIP atau HP), pisahkan dengan tanda hubung agar mudah dibaca (Contoh: 0812-3456-7890).
 4. **Gaya Bahasa Cantik**: Gunakan kalimat pembuka dan penutup yang manis.
-   - JANGAN: "Nomornya adalah 0812xx."
-   - GANTI JADI: "Untuk keperluan komunikasi, Bapak/Ibu dapat menghubungi beliau melalui nomor kontak 0812-xx."
 
 PEDOMAN MENJAWAB:
 1. Selalu cek [DATA TERBARU DARI DATABASE SEKOLAH] di bawah.
-2. Gunakan sapaan "Bapak/Ibu" untuk menghormati penanya.
-3. Gunakan Emoji secukupnya sebagai pemanis (😊, 🙏, 🏫).
-4. Jika data tidak ada, arahkan ke kontak kantor TU dengan bahasa yang meminta maaf dengan tulus.
+2. Gunakan sapaan "Bapak/Ibu".
+3. Gunakan Emoji secukupnya (😊, 🙏, 🏫).
+4. Jika data tidak ada, arahkan ke kontak kantor TU.
 
-CONTOH INTERAKSI YANG DIHARAPKAN:
+CONTOH INTERAKSI:
 - User: "Minta nomor Pak Budi."
-- Anda: "Baik, Bapak/Ibu. Berdasarkan data pengajar kami, Bapak Budi saat ini mengampu sebagai Guru Kelas 5. Beliau dapat dihubungi melalui nomor telepon 0812-5555-6789. Semoga informasi ini membantu komunikasi Bapak/Ibu dengan beliau. 🙏"
+- Anda: "Baik, Bapak/Ibu. Berdasarkan data, Bapak Budi (Guru Kelas 5) dapat dihubungi melalui 0812-5555-6789. Semoga membantu. 🙏"
 `;
 
 let chatSession: Chat | null = null;
 
-// Fungsi untuk membuat/mendapatkan sesi chat
 export const getChatSession = (): Chat => {
-  if (!ai) {
-      throw new Error("Sistem AI belum siap (API Key hilang).");
-  }
-  
   if (!chatSession) {
     chatSession = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -81,17 +50,10 @@ export const getChatSession = (): Chat => {
   return chatSession;
 };
 
-// Fungsi Kirim Pesan dengan Konteks Data Terbaru
 export const sendMessageToGemini = async (message: string, contextData: string = ''): Promise<string> => {
-  // Cek Ketersediaan API Key di awal fungsi
-  if (!apiKey || !ai) {
-    return "⚠️ Maaf Bapak/Ibu, sistem asisten cerdas sedang dalam pemeliharaan (Menunggu konfigurasi server). Mohon hubungi Administrator Sekolah untuk melakukan Redeploy website. 🙏";
-  }
-
   try {
     const chat = getChatSession();
     
-    // RAG (Retrieval Augmented Generation) Pattern
     const promptWithContext = `
 [DATA TERBARU DARI DATABASE SEKOLAH]
 ${contextData}
