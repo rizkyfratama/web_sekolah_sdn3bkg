@@ -5,10 +5,6 @@ import { Trash2, Plus, Image, FileText, Lock, LogOut, Upload, Link as LinkIcon, 
 // KONFIGURASI FOLDER DRIVE (Hanya satu folder default untuk gambar)
 const DEFAULT_DRIVE_FOLDER_ID = "1_rWWi5si0Yg8UYbp4a338ghIdDfUgTa4"; 
 
-// KEAMANAN
-// HASH SHA-256 yang BENAR untuk password: 'adminSDN3'
-const TARGET_HASH = "e9202a000f606d15b1a37c44933947b20a068063716611029140661202868078"; 
-
 export const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -106,27 +102,18 @@ export const Admin: React.FC = () => {
     clearImageSelection();
   };
 
-  // --- SECURE LOGIN LOGIC ---
-  const hashPassword = async (str: string) => {
-    const msgBuffer = new TextEncoder().encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
+  // --- SIMPLE SECURE LOGIN LOGIC ---
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isLocked) return;
 
-    // Hitung Hash dari input user
-    const inputHash = await hashPassword(password);
-    
-    // Jika hash cocok dengan 'adminSDN3'
-    if (inputHash === TARGET_HASH) {
+    // Pengecekan Password Langsung (Case Sensitive)
+    // Password: adminSDN3
+    if (password === 'adminSDN3') {
       setIsAuthenticated(true);
       setLoginAttempts(0);
-      setPassword(''); // Clear password from state memory
+      setPassword(''); 
     } else {
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
@@ -308,7 +295,7 @@ export const Admin: React.FC = () => {
           
           <div className="mt-6 text-center">
               <LinkIcon className="inline-block mr-1 w-3 h-3 text-slate-400" />
-              <span className="text-xs text-slate-400">Secured with SHA-256 Encryption</span>
+              <span className="text-xs text-slate-400">Secure Access Area</span>
           </div>
         </div>
       </div>
